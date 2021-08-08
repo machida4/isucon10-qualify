@@ -37,7 +37,7 @@ db-restart: ## Restart mysql
 db-log: ## tail mysql.log
 	@sudo tail -f /var/log/mysql/mysql.log
 
-db-analyze ## analyze mysql-slow.log
+db-analyze: ## analyze mysql-slow.log
 	@sudo pt-query-digest /var/lib/mysql/mysql-slow.log
 
 .PHONY: help
