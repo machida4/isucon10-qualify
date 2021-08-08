@@ -23,7 +23,7 @@ class App < Sinatra::Base
   helpers do
     def db_info
       {
-        host: ENV.fetch('MYSQL_HOST', '127.0.0.1'),
+        host: 'ec2-3-112-216-124.ap-northeast-1.compute.amazonaws.com',
         port: ENV.fetch('MYSQL_PORT', '3306'),
         username: ENV.fetch('MYSQL_USER', 'isucon'),
         password: ENV.fetch('MYSQL_PASS', 'isucon'),
