@@ -6,7 +6,7 @@ require 'csv'
 require 'rack-lineprof'
 
 class App < Sinatra::Base
-  use Rack::Lineprof, profile: 'app.rb'
+  # use Rack::Lineprof, profile: 'app.rb'
 
   LIMIT = 20
   NAZOTTE_LIMIT = 50
