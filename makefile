@@ -2,8 +2,8 @@
 
 restart: ## copy configs from repository to conf
 	@git pull
-	@sudo cp config/nginx.conf /etc/nginx/
-	@sudo cp config/my.cnf /etc/mysql/
+	@sudo cp nginx.conf /etc/nginx/
+	@sudo cp my.cnf /etc/mysql/
 	@make -s nginx-restart
 	@make -s db-restart
 	@make -s ruby-restart
