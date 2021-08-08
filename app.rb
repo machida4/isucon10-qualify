@@ -3,7 +3,11 @@ require 'mysql2'
 require 'mysql2-cs-bind'
 require 'csv'
 
+require 'rack-lineprof'
+
 class App < Sinatra::Base
+  use Rack::Lineprof, profile: 'app.rb'
+
   LIMIT = 20
   NAZOTTE_LIMIT = 50
   CHAIR_SEARCH_CONDITION = JSON.parse(File.read('../fixture/chair_condition.json'), symbolize_names: true)
