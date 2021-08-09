@@ -6,6 +6,10 @@ restart: ## copy configs from repository to conf
 	@make -s db-restart
 	@make -s app-restart
 
+flush: ## flush log
+	@make -s nginx-flush
+	@make -s db-flush
+
 app-restart: ## Restart Server
 	@sudo systemctl daemon-reload
 	@bundle 1> /dev/null
@@ -26,11 +30,14 @@ nginx-log: ## tail nginx access.log
 nginx-error-log: ## tail nginx error.log
 	@sudo tail -f /var/log/nginx/error.log
 
+nginx-flush: ## flush nginx access.log
+	@sudo echo '' > /var/log/nginx/access.log
+
 alp-dry: ## Run alp
 	@sudo alp ltsv --file /var/log/nginx/access.log --sort sum --reverse --matching-groups '/api/chair/[0-9]+, /api/chair/buy/[0-9]+, /api/estate/[0-9]+, /api/estate/req_doc/[0-9]+, /api/recommended_estate/[0-9]+, /images/chair/[a-zA-Z0-9]+.png, /images/estate/[a-zA-Z0-9]+.png, /_next/static/[a-zA-Z0-9]+.js'
 
-alp: ## Run alp and post the result on discord
-	@make -s alp-dry | ./dispost -f alp.txt
+# alp: ## Run alp and post the result on discord
+# 	@make -s alp-dry | ./dispost -f alp.txt
 
 db-restart: ## Restart mysql
 	@sudo cp my.cnf /etc/mysql/
@@ -40,7 +47,10 @@ db-restart: ## Restart mysql
 db-log: ## tail mysql.log
 	@sudo tail -f /var/log/mysql/mysql.log
 
-db-analyze: ## analyze mysql-slow.log
+db-flush: ## flush mysql-slow.log
+	@sudo echo '' > /var/log/mysql/mysql-slow.log
+
+db-digest: ## analyze mysql-slow.log by pt-query-digest
 	@sudo pt-query-digest /var/log/mysql/mysql-slow.log
 
 .PHONY: help
