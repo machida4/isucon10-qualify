@@ -27,7 +27,7 @@ nginx-error-log: ## tail nginx error.log
 	@sudo tail -f /var/log/nginx/error.log
 
 alp-dry: ## Run alp
-	@sudo alp ltsv --file /var/log/nginx/access.log --sort sum --reverse --matching-groups '/api/chair/[0-9]+, /api/chair/buy/[0-9]+, /api/estate/[0-9]+, /api/estate/req_doc/[0-9]+, /api/recommended_estate/[0-9]+'
+	@sudo alp ltsv --file /var/log/nginx/access.log --sort sum --reverse --matching-groups '/api/chair/[0-9]+, /api/chair/buy/[0-9]+, /api/estate/[0-9]+, /api/estate/req_doc/[0-9]+, /api/recommended_estate/[0-9]+, /images/[a-zA-Z0-9]+.png, /_next/static/[a-zA-Z0-9]+.js'
 
 alp: ## Run alp and post the result on discord
 	@make -s alp-dry | ./dispost -f alp.txt
