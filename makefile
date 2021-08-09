@@ -12,7 +12,7 @@ app-restart: ## Restart Server
 	@sudo systemctl restart isuumo.ruby.service
 	@echo 'Restart ruby'
 
-app-log: ## log Server
+app-log: ## tail server log
 	@sudo journalctl -f -u isuumo.ruby.service
 
 nginx-restart: ## Restart nginx
