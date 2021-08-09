@@ -28,7 +28,7 @@ nginx-error-log: ## tail nginx error.log
 	@sudo tail -f /var/log/nginx/error.log
 
 alp: ## Run alp
-	@alp -f /var/log/nginx/access.log  --sum  -r --aggregates '/profile/\w+, /diary/entry/\d+, /diary/entries/\w+, /diary/comment/\d+, /friends/\w+' --start-time-duration 5m
+	@alp -f /var/log/nginx/access.log  --sum  -r --aggregates '/api/chair/\d+, /api/chair/buy/\d+, /api/estate/\d+, /api/estate/req_doc/\d+'
 
 db-restart: ## Restart mysql
 	@sudo systemctl restart mysql
