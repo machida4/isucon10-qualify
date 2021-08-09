@@ -2,22 +2,21 @@
 
 restart: ## copy configs from repository to conf
 	@git pull
-	@sudo cp nginx.conf /etc/nginx/
-	@sudo cp my.cnf /etc/mysql/
 	@make -s nginx-restart
 	@make -s db-restart
-	@make -s ruby-restart
+	@make -s app-restart
 
-ruby-restart: ## Restart Server
+app-restart: ## Restart Server
 	@sudo systemctl daemon-reload
 	@bundle 1> /dev/null
 	@sudo systemctl restart isuumo.ruby.service
 	@echo 'Restart ruby'
 
-ruby-log: ## log Server
+app-log: ## log Server
 	@sudo journalctl -f -u isuumo.ruby.service
 
 nginx-restart: ## Restart nginx
+	@sudo cp nginx.conf /etc/nginx/
 	@sudo systemctl restart nginx
 	@echo 'Restart nginx'
 
@@ -27,10 +26,14 @@ nginx-log: ## tail nginx access.log
 nginx-error-log: ## tail nginx error.log
 	@sudo tail -f /var/log/nginx/error.log
 
-alp: ## Run alp
+alp-dry: ## Run alp
 	@sudo alp ltsv --file /var/log/nginx/access.log --sort sum --reverse --matching-groups '/api/chair/[0-9]+, /api/chair/buy/[0-9]+, /api/estate/[0-9]+, /api/estate/req_doc/[0-9]+, /api/recommended_estate/[0-9]+'
 
+alp: ## Run alp and post the result on discord
+	@make -s alp-dry | ./dispost
+
 db-restart: ## Restart mysql
+	@sudo cp my.cnf /etc/mysql/
 	@sudo systemctl restart mysql
 	@echo 'Restart mysql'
 
