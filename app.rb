@@ -1,20 +1,20 @@
-require 'sinatra'
-require 'mysql2'
-require 'mysql2-cs-bind'
-require 'csv'
+require "sinatra"
+require "mysql2"
+require "mysql2-cs-bind"
+require "csv"
 
-require 'rack-lineprof'
+require "rack-lineprof"
 
 class App < Sinatra::Base
   # use Rack::Lineprof, profile: 'app.rb'
 
   LIMIT = 20
   NAZOTTE_LIMIT = 50
-  CHAIR_SEARCH_CONDITION = JSON.parse(File.read('../fixture/chair_condition.json'), symbolize_names: true)
-  ESTATE_SEARCH_CONDITION = JSON.parse(File.read('../fixture/estate_condition.json'), symbolize_names: true)
+  CHAIR_SEARCH_CONDITION = JSON.parse(File.read("../fixture/chair_condition.json"), symbolize_names: true)
+  ESTATE_SEARCH_CONDITION = JSON.parse(File.read("../fixture/estate_condition.json"), symbolize_names: true)
 
   configure :development do
-    require 'sinatra/reloader'
+    require "sinatra/reloader"
     register Sinatra::Reloader
   end
 
@@ -22,16 +22,16 @@ class App < Sinatra::Base
     enable :logging
   end
 
-  set :add_charset, ['application/json']
+  set :add_charset, ["application/json"]
 
   helpers do
     def db_info
       {
-        host: 'ec2-3-112-216-124.ap-northeast-1.compute.amazonaws.com',
-        port: ENV.fetch('MYSQL_PORT', '3306'),
-        username: ENV.fetch('MYSQL_USER', 'isucon'),
-        password: ENV.fetch('MYSQL_PASS', 'isucon'),
-        database: ENV.fetch('MYSQL_DBNAME', 'isuumo'),
+        host: "ec2-3-112-216-124.ap-northeast-1.compute.amazonaws.com",
+        port: ENV.fetch("MYSQL_PORT", "3306"),
+        username: ENV.fetch("MYSQL_USER", "isucon"),
+        password: ENV.fetch("MYSQL_PASS", "isucon"),
+        database: ENV.fetch("MYSQL_DBNAME", "isuumo")
       }
     end
 
@@ -43,7 +43,7 @@ class App < Sinatra::Base
         password: db_info[:password],
         database: db_info[:database],
         reconnect: true,
-        symbolize_keys: true,
+        symbolize_keys: true
       )
     end
 
@@ -61,19 +61,19 @@ class App < Sinatra::Base
 
     def begin_transaction(name)
       Thread.current[:db_transaction] ||= {}
-      db.query('BEGIN')
+      db.query("BEGIN")
       Thread.current[:db_transaction][name] = :open
     end
 
     def commit_transaction(name)
       Thread.current[:db_transaction] ||= {}
-      db.query('COMMIT')
+      db.query("COMMIT")
       Thread.current[:db_transaction][name] = :nil
     end
 
     def rollback_transaction(name)
       Thread.current[:db_transaction] ||= {}
-      db.query('ROLLBACK')
+      db.query("ROLLBACK")
       Thread.current[:db_transaction][name] = :nil
     end
 
@@ -104,27 +104,27 @@ class App < Sinatra::Base
     end
   end
 
-  post '/initialize' do
-    sql_dir = Pathname.new('../mysql/db')
+  post "/initialize" do
+    sql_dir = Pathname.new("../mysql/db")
     %w[0_Schema.sql 1_DummyEstateData.sql 2_DummyChairData.sql].each do |sql|
       sql_path = sql_dir.join(sql)
-      cmd = ['mysql', '-h', db_info[:host], '-u', db_info[:username], "-p#{db_info[:password]}", '-P', db_info[:port], db_info[:database]]
-      IO.popen(cmd, 'w') do |io|
+      cmd = ["mysql", "-h", db_info[:host], "-u", db_info[:username], "-p#{db_info[:password]}", "-P", db_info[:port], db_info[:database]]
+      IO.popen(cmd, "w") do |io|
         io.puts File.read(sql_path)
         io.close
       end
     end
 
-    { language: 'ruby' }.to_json
+    {language: "ruby"}.to_json
   end
 
-  get '/api/chair/low_priced' do
+  get "/api/chair/low_priced" do
     sql = "SELECT * FROM chair WHERE stock > 0 ORDER BY price ASC, id ASC LIMIT #{LIMIT}" # XXX:
     chairs = db.query(sql).to_a
-    { chairs: chairs }.to_json
+    {chairs: chairs}.to_json
   end
 
-  get '/api/chair/search' do
+  get "/api/chair/search" do
     search_queries = []
     query_params = []
 
@@ -136,12 +136,12 @@ class App < Sinatra::Base
       end
 
       if chair_price[:min] != -1
-        search_queries << 'price >= ?'
+        search_queries << "price >= ?"
         query_params << chair_price[:min]
       end
 
       if chair_price[:max] != -1
-        search_queries << 'price < ?'
+        search_queries << "price < ?"
         query_params << chair_price[:max]
       end
     end
@@ -154,12 +154,12 @@ class App < Sinatra::Base
       end
 
       if chair_height[:min] != -1
-        search_queries << 'height >= ?'
+        search_queries << "height >= ?"
         query_params << chair_height[:min]
       end
 
       if chair_height[:max] != -1
-        search_queries << 'height < ?'
+        search_queries << "height < ?"
         query_params << chair_height[:max]
       end
     end
@@ -172,12 +172,12 @@ class App < Sinatra::Base
       end
 
       if chair_width[:min] != -1
-        search_queries << 'width >= ?'
+        search_queries << "width >= ?"
         query_params << chair_width[:min]
       end
 
       if chair_width[:max] != -1
-        search_queries << 'width < ?'
+        search_queries << "width < ?"
         query_params << chair_width[:max]
       end
     end
@@ -190,28 +190,28 @@ class App < Sinatra::Base
       end
 
       if chair_depth[:min] != -1
-        search_queries << 'depth >= ?'
+        search_queries << "depth >= ?"
         query_params << chair_depth[:min]
       end
 
       if chair_depth[:max] != -1
-        search_queries << 'depth < ?'
+        search_queries << "depth < ?"
         query_params << chair_depth[:max]
       end
     end
 
     if params[:kind] && params[:kind].size > 0
-      search_queries << 'kind = ?'
+      search_queries << "kind = ?"
       query_params << params[:kind]
     end
 
     if params[:color] && params[:color].size > 0
-      search_queries << 'color = ?'
+      search_queries << "color = ?"
       query_params << params[:color]
     end
 
     if params[:features] && params[:features].size > 0
-      params[:features].split(',').each do |feature_condition|
+      params[:features].split(",").each do |feature_condition|
         search_queries << "features LIKE CONCAT('%', ?, '%')"
         query_params.push(feature_condition)
       end
@@ -222,7 +222,7 @@ class App < Sinatra::Base
       halt 400
     end
 
-    search_queries.push('stock > 0')
+    search_queries.push("stock > 0")
 
     page =
       begin
@@ -240,18 +240,18 @@ class App < Sinatra::Base
         halt 400
       end
 
-    sqlprefix = 'SELECT * FROM chair WHERE '
-    search_condition = search_queries.join(' AND ')
+    sqlprefix = "SELECT * FROM chair WHERE "
+    search_condition = search_queries.join(" AND ")
     limit_offset = " ORDER BY unpopularity ASC, id ASC LIMIT #{per_page} OFFSET #{per_page * page}" # XXX: mysql-cs-bind doesn't support escaping variables for limit and offset
-    count_prefix = 'SELECT COUNT(*) as count FROM chair WHERE '
+    count_prefix = "SELECT COUNT(*) as count FROM chair WHERE "
 
     count = db.xquery("#{count_prefix}#{search_condition}", query_params).first[:count]
     chairs = db.xquery("#{sqlprefix}#{search_condition}#{limit_offset}", query_params).to_a
 
-    { count: count, chairs: chairs }.to_json
+    {count: count, chairs: chairs}.to_json
   end
 
-  get '/api/chair/:id' do
+  get "/api/chair/:id" do
     id =
       begin
         Integer(params[:id], 10)
@@ -260,7 +260,7 @@ class App < Sinatra::Base
         halt 400
       end
 
-    chair = db.xquery('SELECT * FROM chair WHERE id = ?', id).first
+    chair = db.xquery("SELECT * FROM chair WHERE id = ?", id).first
     unless chair
       logger.info "Requested id's chair not found: #{id}"
       halt 404
@@ -274,15 +274,15 @@ class App < Sinatra::Base
     chair.to_json
   end
 
-  post '/api/chair' do
+  post "/api/chair" do
     if !params[:chairs] || !params[:chairs].respond_to?(:key) || !params[:chairs].key?(:tempfile)
-      logger.error 'Failed to get form file'
+      logger.error "Failed to get form file"
       halt 400
     end
 
-    transaction('post_api_chair') do
+    transaction("post_api_chair") do
       CSV.parse(params[:chairs][:tempfile].read, skip_blanks: true) do |row|
-        sql = 'INSERT INTO chair(id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        sql = "INSERT INTO chair(id, name, description, thumbnail, price, height, width, depth, color, features, kind, popularity, stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         db.xquery(sql, *row.map(&:to_s))
       end
     end
@@ -290,9 +290,9 @@ class App < Sinatra::Base
     status 201
   end
 
-  post '/api/chair/buy/:id' do
+  post "/api/chair/buy/:id" do
     unless body_json_params[:email]
-      logger.error 'post buy chair failed: email not found in request body'
+      logger.error "post buy chair failed: email not found in request body"
       halt 400
     end
 
@@ -304,29 +304,29 @@ class App < Sinatra::Base
         halt 400
       end
 
-    transaction('post_api_chair_buy') do |tx_name|
-      chair = db.xquery('SELECT * FROM chair WHERE id = ? AND stock > 0 FOR UPDATE', id).first
+    transaction("post_api_chair_buy") do |tx_name|
+      chair = db.xquery("SELECT * FROM chair WHERE id = ? AND stock > 0 FOR UPDATE", id).first
       unless chair
         rollback_transaction(tx_name) if in_transaction?(tx_name)
         halt 404
       end
-      db.xquery('UPDATE chair SET stock = stock - 1 WHERE id = ?', id)
+      db.xquery("UPDATE chair SET stock = stock - 1 WHERE id = ?", id)
     end
 
     status 200
   end
 
-  get '/api/chair/search/condition' do
+  get "/api/chair/search/condition" do
     CHAIR_SEARCH_CONDITION.to_json
   end
 
-  get '/api/estate/low_priced' do
+  get "/api/estate/low_priced" do
     sql = "SELECT * FROM estate ORDER BY rent ASC, id ASC LIMIT #{LIMIT}" # XXX:
     estates = db.xquery(sql).to_a
-    { estates: estates.map { |e| camelize_keys_for_estate(e) } }.to_json
+    {estates: estates.map { |e| camelize_keys_for_estate(e) }}.to_json
   end
 
-  get '/api/estate/search' do
+  get "/api/estate/search" do
     search_queries = []
     query_params = []
 
@@ -338,12 +338,12 @@ class App < Sinatra::Base
       end
 
       if door_height[:min] != -1
-        search_queries << 'door_height >= ?'
+        search_queries << "door_height >= ?"
         query_params << door_height[:min]
       end
 
       if door_height[:max] != -1
-        search_queries << 'door_height < ?'
+        search_queries << "door_height < ?"
         query_params << door_height[:max]
       end
     end
@@ -356,12 +356,12 @@ class App < Sinatra::Base
       end
 
       if door_width[:min] != -1
-        search_queries << 'door_width >= ?'
+        search_queries << "door_width >= ?"
         query_params << door_width[:min]
       end
 
       if door_width[:max] != -1
-        search_queries << 'door_width < ?'
+        search_queries << "door_width < ?"
         query_params << door_width[:max]
       end
     end
@@ -374,18 +374,18 @@ class App < Sinatra::Base
       end
 
       if rent[:min] != -1
-        search_queries << 'rent >= ?'
+        search_queries << "rent >= ?"
         query_params << rent[:min]
       end
 
       if rent[:max] != -1
-        search_queries << 'rent < ?'
+        search_queries << "rent < ?"
         query_params << rent[:max]
       end
     end
 
     if params[:features] && params[:features].size > 0
-      params[:features].split(',').each do |feature_condition|
+      params[:features].split(",").each do |feature_condition|
         search_queries << "features LIKE CONCAT('%', ?, '%')"
         query_params.push(feature_condition)
       end
@@ -412,18 +412,18 @@ class App < Sinatra::Base
         halt 400
       end
 
-    sqlprefix = 'SELECT * FROM estate WHERE '
-    search_condition = search_queries.join(' AND ')
+    sqlprefix = "SELECT * FROM estate WHERE "
+    search_condition = search_queries.join(" AND ")
     limit_offset = " ORDER BY unpopularity ASC, id ASC LIMIT #{per_page} OFFSET #{per_page * page}" # XXX:
-    count_prefix = 'SELECT COUNT(*) as count FROM estate WHERE '
+    count_prefix = "SELECT COUNT(*) as count FROM estate WHERE "
 
     count = db.xquery("#{count_prefix}#{search_condition}", query_params).first[:count]
     estates = db.xquery("#{sqlprefix}#{search_condition}#{limit_offset}", query_params).to_a
 
-    { count: count, estates: estates.map { |e| camelize_keys_for_estate(e) } }.to_json
+    {count: count, estates: estates.map { |e| camelize_keys_for_estate(e) }}.to_json
   end
 
-  post '/api/estate/nazotte' do
+  post "/api/estate/nazotte" do
     coordinates = body_json_params[:coordinates]
 
     unless coordinates
@@ -441,22 +441,22 @@ class App < Sinatra::Base
     bounding_box = {
       top_left: {
         longitude: longitudes.min,
-        latitude: latitudes.min,
+        latitude: latitudes.min
       },
       bottom_right: {
         longitude: longitudes.max,
-        latitude: latitudes.max,
-      },
+        latitude: latitudes.max
+      }
     }
 
-    sql = 'SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? ORDER BY unpopularity ASC, id ASC'
+    sql = "SELECT * FROM estate WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ? ORDER BY unpopularity ASC, id ASC"
     estates = db.xquery(sql, bounding_box[:bottom_right][:latitude], bounding_box[:top_left][:latitude], bounding_box[:bottom_right][:longitude], bounding_box[:top_left][:longitude])
 
     estates_in_polygon = []
     estates.each do |estate|
       point = "'POINT(%f %f)'" % estate.values_at(:latitude, :longitude)
-      coordinates_to_text = "'POLYGON((%s))'" % coordinates.map { |c| '%f %f' % c.values_at(:latitude, :longitude) }.join(',')
-      sql = 'SELECT * FROM estate WHERE id = ? AND ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))' % [coordinates_to_text, point]
+      coordinates_to_text = "'POLYGON((%s))'" % coordinates.map { |c| "%f %f" % c.values_at(:latitude, :longitude) }.join(",")
+      sql = "SELECT * FROM estate WHERE id = ? AND ST_Contains(ST_PolygonFromText(%s), ST_GeomFromText(%s))" % [coordinates_to_text, point]
       e = db.xquery(sql, estate[:id]).first
       if e
         estates_in_polygon << e
@@ -466,11 +466,11 @@ class App < Sinatra::Base
     nazotte_estates = estates_in_polygon.take(NAZOTTE_LIMIT)
     {
       estates: nazotte_estates.map { |e| camelize_keys_for_estate(e) },
-      count: nazotte_estates.size,
+      count: nazotte_estates.size
     }.to_json
   end
 
-  get '/api/estate/:id' do
+  get "/api/estate/:id" do
     id =
       begin
         Integer(params[:id], 10)
@@ -479,7 +479,7 @@ class App < Sinatra::Base
         halt 400
       end
 
-    estate = db.xquery('SELECT * FROM estate WHERE id = ?', id).first
+    estate = db.xquery("SELECT * FROM estate WHERE id = ?", id).first
     unless estate
       logger.info "Requested id's estate not found: #{id}"
       halt 404
@@ -488,15 +488,15 @@ class App < Sinatra::Base
     camelize_keys_for_estate(estate).to_json
   end
 
-  post '/api/estate' do
+  post "/api/estate" do
     unless params[:estates]
-      logger.error 'Failed to get form file'
+      logger.error "Failed to get form file"
       halt 400
     end
 
-    transaction('post_api_estate') do
+    transaction("post_api_estate") do
       CSV.parse(params[:estates][:tempfile].read, skip_blanks: true) do |row|
-        sql = 'INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        sql = "INSERT INTO estate(id, name, description, thumbnail, address, latitude, longitude, rent, door_height, door_width, features, popularity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         db.xquery(sql, *row.map(&:to_s))
       end
     end
@@ -504,9 +504,9 @@ class App < Sinatra::Base
     status 201
   end
 
-  post '/api/estate/req_doc/:id' do
+  post "/api/estate/req_doc/:id" do
     unless body_json_params[:email]
-      logger.error 'post request document failed: email not found in request body'
+      logger.error "post request document failed: email not found in request body"
       halt 400
     end
 
@@ -518,7 +518,7 @@ class App < Sinatra::Base
         halt 400
       end
 
-    estate = db.xquery('SELECT * FROM estate WHERE id = ?', id).first
+    estate = db.xquery("SELECT * FROM estate WHERE id = ?", id).first
     unless estate
       logger.error "Requested id's estate not found: #{id}"
       halt 404
@@ -527,11 +527,11 @@ class App < Sinatra::Base
     status 200
   end
 
-  get '/api/estate/search/condition' do
+  get "/api/estate/search/condition" do
     ESTATE_SEARCH_CONDITION.to_json
   end
 
-  get '/api/recommended_estate/:id' do
+  get "/api/recommended_estate/:id" do
     id =
       begin
         Integer(params[:id], 10)
@@ -540,7 +540,7 @@ class App < Sinatra::Base
         halt 400
       end
 
-    chair = db.xquery('SELECT * FROM chair WHERE id = ?', id).first
+    chair = db.xquery("SELECT * FROM chair WHERE id = ?", id).first
     unless chair
       logger.error "Requested id's chair not found: #{id}"
       halt 404
@@ -553,6 +553,6 @@ class App < Sinatra::Base
     sql = "SELECT * FROM estate WHERE (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) OR (door_width >= ? AND door_height >= ?) ORDER BY unpopularity ASC, id ASC LIMIT #{LIMIT}" # XXX:
     estates = db.xquery(sql, w, h, w, d, h, w, h, d, d, w, d, h).to_a
 
-    { estates: estates.map { |e| camelize_keys_for_estate(e) } }.to_json
+    {estates: estates.map { |e| camelize_keys_for_estate(e) }}.to_json
   end
 end
